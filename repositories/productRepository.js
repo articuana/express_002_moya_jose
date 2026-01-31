@@ -1,91 +1,71 @@
+const pool = require('../config/db');
+
 class ProductRepository {
-    constructor() {
-        this.products = [
-            {
-                id: 1,
-                descripcion: 'Producto 1',
-                price: 899.99,
-                stock: 10,
-                sku: 'PROD001'
-            },
-            {
-                id: 2,
-                descripcion: 'Producto 2',
-                price: 1299.99,
-                stock: 5,
-                sku: 'PROD002'
-            },
-            {
-                id: 3,
-                descripcion: 'Producto 3',
-                price: 1599.99,
-                stock: 8,
-                sku: 'PROD003'
-            }
-        ];
-    }
-    //Todo repositorio debe tener al menos los sigueintes metodos
-    findAll() {
-        return this.products;
+
+    async findAll() {
+        const result = await pool.query('SELECT * FROM products');
+        return result.rows;
     }
 
-    findbyId(id){
-        return this.products.find(product => product.id === id);
+    async findbyId(id) {
+        const result = await pool.query(
+            'SELECT * FROM products WHERE id = $1',
+            [id]
+        );
+        return result.rows[0];
     }
 
-    findBySku(sku){
-        return this.products.find(product => product.sku === sku);
+    async findBySku(sku) {
+        const result = await pool.query(
+            'SELECT * FROM products WHERE sku = $1',
+            [sku]
+        );
+        return result.rows[0];
     }
 
-    create(product){
-        const newProduct = {
-            id: this.products.length + 1,
-            ...product // Agrega todas las propiedades del objeto product
-            //descripcion: product.descripcion,
-            //price: product.price,
-            //stock: product.stock,
-        }
-        this.products.push(newProduct);
-        return newProduct;
+    async create(product) {
+        const { descripcion, price, stock, sku } = product;
+
+        const result = await pool.query(
+            `INSERT INTO products (descripcion, price, stock, sku)
+             VALUES ($1, $2, $3, $4)
+             RETURNING *`,
+            [descripcion, price, stock, sku]
+        );
+
+        return result.rows[0];
     }
 
-    update(id, product){
-        const productIndex = this.products.findIndex(p => p.id === id);
+    async update(id, product) {
+        const fields = [];
+        const values = [];
+        let index = 1;
 
-        //early stopping
-
-        if (productIndex == -1) {
-            return null; 
+        for (const key in product) {
+            fields.push(`${key} = $${index}`);
+            values.push(product[key]);
+            index++;
         }
 
-        //update 4, {stock: 18, id: 888888}
-        //actualizar a la fuerza
-        //this.products[productIndex] = product
+        values.push(id);
 
-        //actualizar usando spread operator   
-        this.products[productIndex] = {
-            ...this.products[productIndex], 
-            ...product,
-            id //asegurarse de que el id no se actualiza
-        }
+        const query = `
+            UPDATE products
+            SET ${fields.join(', ')}
+            WHERE id = $${index}
+            RETURNING *
+        `;
 
-        return this.products[productIndex];
+        const result = await pool.query(query, values);
+        return result.rows[0];
     }
-    delete(id){
-        const index = this.products.findIndex(p => p.id === id);
 
-        //early stopping
-        if (index == -1) {
-            return null;
-        }
-
-        //javascript te provee de un metodo para eliminar un objeto
-        // de un arreglo y al mismo tiempo obtenerlo
-        //se llama splice
-
-        const deletedProducts = this.products.splice(index, 1); //retorna un arreglo
-
-        return deletedProducts[0]; //retorna el primer elemento del arreglo
+    async delete(id) {
+        const result = await pool.query(
+            'DELETE FROM products WHERE id = $1 RETURNING *',
+            [id]
+        );
+        return result.rows[0];
     }
 }
 

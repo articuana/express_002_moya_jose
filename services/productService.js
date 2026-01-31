@@ -2,15 +2,15 @@ const productRepository = require('../repositories/productRepository');
 //en la capa de servicio se maneja la logica de negocio como las validaciones
 const ProductService = {
 
-    findAll() {
-        const products = productRepository.findAll();
+    async findAll() {
+        const products = await productRepository.findAll();
         return {
             products,
             total: products.length
         };
     },
 
-    searchById(id) {
+     async searchById(id) {
         const numericId = parseInt(id);
         // http status:
         // 200 ok
@@ -28,7 +28,7 @@ const ProductService = {
             };
         }
 
-        const product = productRepository.findbyId(numericId);
+        const product = await productRepository.findbyId(numericId);
 
         if (!product) {
             throw {
@@ -40,7 +40,7 @@ const ProductService = {
         return product;
     },
 
-    create(newProduct) {
+    async create(newProduct) {
         const { descripcion, price, stock, sku } = newProduct;
 
         // Validaciones
@@ -65,7 +65,7 @@ const ProductService = {
             };
         }
 
-        const existingSku = productRepository.findBySku(sku);
+        const existingSku = await productRepository.findBySku(sku);
         if (existingSku) {
             throw {
                 status: 400,
@@ -81,7 +81,7 @@ const ProductService = {
         });
     },
 
-    update(id, product) {
+    async update(id, product) {
         const numericId = parseInt(id);
         if (isNaN(numericId)) {
             throw {
@@ -90,7 +90,7 @@ const ProductService = {
             };
         }
 
-        const updated = productRepository.update(numericId, product);
+        const updated = await productRepository.update(numericId, product);
         if (!updated) {
             throw {
                 status: 404,
@@ -101,7 +101,7 @@ const ProductService = {
         return updated;
     },
 
-    delete(id) {
+    async delete(id) {
         const numericId = parseInt(id);
         if (isNaN(numericId)) {
             throw {
@@ -110,7 +110,7 @@ const ProductService = {
             };
         }
 
-        const deleted = productRepository.delete(numericId);
+        const deleted = await productRepository.delete(numericId);
         if (!deleted) {
             throw {
                 status: 404,
